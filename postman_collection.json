@@ -1,0 +1,279 @@
+{
+  "info": {
+    "name": "校园选课与教学资源管理平台 API 测试集合",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "由 .http 文件整理的核心请求，适配 Postman 导入。可通过集合变量填写ID。"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "courseId", "value": "" },
+    { "key": "studentId", "value": "" },
+    { "key": "enrollmentId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "基础测试",
+      "item": [
+        {
+          "name": "访问首页",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/",
+            "description": "预期 200 OK"
+          }
+        },
+        {
+          "name": "健康检查",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health",
+            "description": "预期 200 OK"
+          }
+        }
+      ]
+    },
+    {
+      "name": "课程管理",
+      "item": [
+        {
+          "name": "创建课程",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"CS101\",\n  \"title\": \"计算机科学导论\",\n  \"instructor\": {\n    \"id\": \"T001\",\n    \"name\": \"张教授\",\n    \"email\": \"zhang@example.edu.cn\"\n  },\n  \"schedule\": {\n    \"dayOfWeek\": \"MONDAY\",\n    \"startTime\": \"08:00\",\n    \"endTime\": \"10:00\",\n    \"expectedAttendance\": 50\n  },\n  \"capacity\": 60\n}"
+            },
+            "url": "{{baseUrl}}/api/courses",
+            "description": "预期 201 Created"
+          }
+        },
+        {
+          "name": "查询所有课程",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/courses",
+            "description": "预期 200 OK，返回列表"
+          }
+        },
+        {
+          "name": "根据ID查询课程",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/courses/{{courseId}}",
+            "description": "预期 200 OK，填写 courseId"
+          }
+        },
+        {
+          "name": "更新课程",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"CS101\",\n  \"title\": \"计算机科学导论（更新版）\",\n  \"instructor\": {\n    \"id\": \"T001\",\n    \"name\": \"张教授\",\n    \"email\": \"zhang@example.edu.cn\"\n  },\n  \"schedule\": {\n    \"dayOfWeek\": \"MONDAY\",\n    \"startTime\": \"08:00\",\n    \"endTime\": \"10:00\",\n    \"expectedAttendance\": 60\n  },\n  \"capacity\": 80\n}"
+            },
+            "url": "{{baseUrl}}/api/courses/{{courseId}}",
+            "description": "预期 200 OK"
+          }
+        },
+        {
+          "name": "删除课程",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/courses/{{courseId}}",
+            "description": "预期 200 OK"
+          }
+        }
+      ]
+    },
+    {
+      "name": "学生管理",
+      "item": [
+        {
+          "name": "创建学生",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"S2024001\",\n  \"name\": \"张三\",\n  \"major\": \"计算机科学与技术\",\n  \"grade\": 2024,\n  \"email\": \"zhangsan@student.edu.cn\"\n}"
+            },
+            "url": "{{baseUrl}}/api/students",
+            "description": "预期 201 Created"
+          }
+        },
+        {
+          "name": "查询所有学生",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/students",
+            "description": "预期 200 OK"
+          }
+        },
+        {
+          "name": "根据ID查询学生",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/students/{{studentId}}",
+            "description": "预期 200 OK，填写 studentId"
+          }
+        },
+        {
+          "name": "更新学生",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"S2024001\",\n  \"name\": \"张三\",\n  \"major\": \"人工智能\",\n  \"grade\": 2024,\n  \"email\": \"zhangsan_new@student.edu.cn\"\n}"
+            },
+            "url": "{{baseUrl}}/api/students/{{studentId}}",
+            "description": "预期 200 OK"
+          }
+        },
+        {
+          "name": "删除学生",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/students/{{studentId}}",
+            "description": "预期 200/400 视业务规则"
+          }
+        }
+      ]
+    },
+    {
+      "name": "选课业务",
+      "item": [
+        {
+          "name": "学生选课",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": \"{{courseId}}\",\n  \"studentId\": \"{{studentId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/enrollments",
+            "description": "预期 201 Created"
+          }
+        },
+        {
+          "name": "查询选课记录",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/enrollments",
+            "description": "预期 200 OK"
+          }
+        },
+        {
+          "name": "按课程查询选课记录",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/enrollments/course/{{courseId}}",
+            "description": "预期 200 OK"
+          }
+        },
+        {
+          "name": "按学生查询选课记录",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/enrollments/student/{{studentId}}",
+            "description": "预期 200 OK"
+          }
+        },
+        {
+          "name": "退课",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/enrollments/{{enrollmentId}}",
+            "description": "预期 200 OK"
+          }
+        }
+      ]
+    },
+    {
+      "name": "错误处理用例",
+      "item": [
+        {
+          "name": "查询不存在的课程ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/courses/non-existent-id",
+            "description": "预期 404 Not Found"
+          }
+        },
+        {
+          "name": "创建课程缺少必填字段",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"CS999\"\n}"
+            },
+            "url": "{{baseUrl}}/api/courses",
+            "description": "预期 400 Bad Request"
+          }
+        },
+        {
+          "name": "选课提供不存在的课程ID",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": \"non-existent-course-id\",\n  \"studentId\": \"S2024001\"\n}"
+            },
+            "url": "{{baseUrl}}/api/enrollments",
+            "description": "预期 404 Not Found"
+          }
+        },
+        {
+          "name": "创建学生使用重复学号",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"S2024001\",\n  \"name\": \"重复学号学生\",\n  \"major\": \"计算机科学与技术\",\n  \"grade\": 2024,\n  \"email\": \"duplicate@student.edu.cn\"\n}"
+            },
+            "url": "{{baseUrl}}/api/students",
+            "description": "预期 400 Bad Request"
+          }
+        },
+        {
+          "name": "创建学生邮箱格式无效",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": \"S2024999\",\n  \"name\": \"无效邮箱学生\",\n  \"major\": \"计算机科学与技术\",\n  \"grade\": 2024,\n  \"email\": \"invalid-email\"\n}"
+            },
+            "url": "{{baseUrl}}/api/students",
+            "description": "预期 400 Bad Request"
+          }
+        }
+      ]
+    }
+  ]
+}
