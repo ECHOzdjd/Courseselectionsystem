@@ -1,18 +1,20 @@
 package com.zjgsu.wy.courseselectionsystem.service;
 
+import com.zjgsu.wy.courseselectionsystem.exception.BusinessException;
 import com.zjgsu.wy.courseselectionsystem.exception.ResourceNotFoundException;
 import com.zjgsu.wy.courseselectionsystem.model.Course;
 import com.zjgsu.wy.courseselectionsystem.repository.CourseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * 课程服务层
  */
 @Service
+@Transactional(readOnly = true)
 public class CourseService {
     
     @Autowired
@@ -36,10 +38,11 @@ public class CourseService {
     /**
      * 创建课程
      */
+    @Transactional
     public Course create(Course course) {
         // 检查课程代码是否已存在
-        if (courseRepository.findByCode(course.getCode()).isPresent()) {
-            throw new IllegalArgumentException("课程代码已存在: " + course.getCode());
+        if (courseRepository.existsByCode(course.getCode())) {
+            throw new BusinessException("课程代码已存在: " + course.getCode());
         }
         return courseRepository.save(course);
     }
@@ -47,25 +50,31 @@ public class CourseService {
     /**
      * 更新课程
      */
+    @Transactional
     public Course update(String id, Course course) {
         Course existingCourse = findById(id);
         
         // 如果课程代码发生变化，检查新代码是否已存在
         if (!existingCourse.getCode().equals(course.getCode())) {
-            if (courseRepository.findByCode(course.getCode()).isPresent()) {
-                throw new IllegalArgumentException("课程代码已存在: " + course.getCode());
+            if (courseRepository.existsByCode(course.getCode())) {
+                throw new BusinessException("课程代码已存在: " + course.getCode());
             }
         }
         
+        // 保留原有的ID和创建时间
         course.setId(id);
+        course.setCreatedAt(existingCourse.getCreatedAt());
         return courseRepository.save(course);
     }
 
     /**
      * 删除课程
      */
+    @Transactional
     public void deleteById(String id) {
-        findById(id); // 检查课程是否存在
+        if (!courseRepository.existsById(id)) {
+            throw new ResourceNotFoundException("课程不存在，ID: " + id);
+        }
         courseRepository.deleteById(id);
     }
 
@@ -74,5 +83,19 @@ public class CourseService {
      */
     public boolean existsById(String id) {
         return courseRepository.existsById(id);
+    }
+    
+    /**
+     * 根据标题关键字查询课程
+     */
+    public List<Course> searchByTitle(String keyword) {
+        return courseRepository.findByTitleContainingIgnoreCase(keyword);
+    }
+    
+    /**
+     * 查询有剩余容量的课程
+     */
+    public List<Course> findAvailableCourses() {
+        return courseRepository.findCoursesWithAvailableCapacity();
     }
 }

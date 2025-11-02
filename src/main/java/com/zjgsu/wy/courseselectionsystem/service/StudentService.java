@@ -2,19 +2,21 @@ package com.zjgsu.wy.courseselectionsystem.service;
 
 import com.zjgsu.wy.courseselectionsystem.exception.BusinessException;
 import com.zjgsu.wy.courseselectionsystem.exception.ResourceNotFoundException;
+import com.zjgsu.wy.courseselectionsystem.model.EnrollmentStatus;
 import com.zjgsu.wy.courseselectionsystem.model.Student;
 import com.zjgsu.wy.courseselectionsystem.repository.EnrollmentRepository;
 import com.zjgsu.wy.courseselectionsystem.repository.StudentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * 学生服务层
  */
 @Service
+@Transactional(readOnly = true)
 public class StudentService {
     
     @Autowired
@@ -41,10 +43,16 @@ public class StudentService {
     /**
      * 创建学生
      */
+    @Transactional
     public Student create(Student student) {
         // 检查学号是否已存在
         if (studentRepository.existsByStudentId(student.getStudentId())) {
             throw new BusinessException("学号已存在: " + student.getStudentId());
+        }
+        
+        // 检查邮箱是否已存在
+        if (studentRepository.existsByEmail(student.getEmail())) {
+            throw new BusinessException("邮箱已存在: " + student.getEmail());
         }
         
         return studentRepository.save(student);
@@ -53,6 +61,7 @@ public class StudentService {
     /**
      * 更新学生信息
      */
+    @Transactional
     public Student update(String id, Student student) {
         Student existingStudent = findById(id);
         
@@ -63,23 +72,32 @@ public class StudentService {
             }
         }
         
+        // 如果邮箱发生变化，检查新邮箱是否已存在
+        if (!existingStudent.getEmail().equals(student.getEmail())) {
+            if (studentRepository.existsByEmail(student.getEmail())) {
+                throw new BusinessException("邮箱已存在: " + student.getEmail());
+            }
+        }
+        
+        // 保留原有的ID和创建时间
         student.setId(id);
-        student.setCreatedAt(existingStudent.getCreatedAt()); // 保持创建时间不变
+        student.setCreatedAt(existingStudent.getCreatedAt());
         return studentRepository.save(student);
     }
 
     /**
      * 删除学生
      */
+    @Transactional
     public void deleteById(String id) {
         Student student = findById(id);
         
-        // 检查是否有选课记录
-        List<com.zjgsu.wy.courseselectionsystem.model.Enrollment> enrollments = 
-                enrollmentRepository.findByStudentId(student.getStudentId());
+        // 检查是否有活跃的选课记录
+        long activeEnrollmentCount = enrollmentRepository.countByStudentIdAndStatus(
+                student.getStudentId(), EnrollmentStatus.ACTIVE);
         
-        if (!enrollments.isEmpty()) {
-            throw new BusinessException("无法删除：该学生存在选课记录");
+        if (activeEnrollmentCount > 0) {
+            throw new BusinessException("无法删除：该学生存在活跃的选课记录");
         }
         
         studentRepository.deleteById(id);
@@ -98,5 +116,19 @@ public class StudentService {
      */
     public boolean existsById(String id) {
         return studentRepository.existsById(id);
+    }
+    
+    /**
+     * 根据专业查询学生列表
+     */
+    public List<Student> findByMajor(String major) {
+        return studentRepository.findByMajor(major);
+    }
+    
+    /**
+     * 根据年级查询学生列表
+     */
+    public List<Student> findByGrade(Integer grade) {
+        return studentRepository.findByGrade(grade);
     }
 }

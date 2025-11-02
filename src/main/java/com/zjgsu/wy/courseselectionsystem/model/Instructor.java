@@ -1,10 +1,12 @@
 package com.zjgsu.wy.courseselectionsystem.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.Embeddable;
 
 /**
- * 教师实体类
+ * 教师嵌入式对象（作为Course的一部分）
  */
+@Embeddable
 public class Instructor {
     @JsonProperty("id")
     private String id;

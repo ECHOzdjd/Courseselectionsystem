@@ -1,10 +1,12 @@
 package com.zjgsu.wy.courseselectionsystem.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.Embeddable;
 
 /**
- * 课程时间安排实体类
+ * 课程时间安排嵌入式对象
  */
+@Embeddable
 public class ScheduleSlot {
     @JsonProperty("dayOfWeek")
     private String dayOfWeek;

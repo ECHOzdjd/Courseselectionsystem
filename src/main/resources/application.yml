@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: course-selection-system
+  profiles:
+    active: dev
 
 logging:
   level:
