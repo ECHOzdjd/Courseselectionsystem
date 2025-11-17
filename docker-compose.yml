@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # MySQL 数据库服务
+  mysql:
+    image: mysql:8
+    container_name: coursehub-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: wywywy678
+      MYSQL_DATABASE: course_db
+      MYSQL_USER: courseuser
+      MYSQL_PASSWORD: coursepass
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./src/main/resources/db/init-mysql.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - coursehub-network
+    command: --character-set-server=utf8mb4
+              --collation-server=utf8mb4_unicode_ci
+              --mysql-native-password=ON
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pwywywy678"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Spring Boot 应用服务
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: coursehub:latest
+    container_name: coursehub-app
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/course_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: wywywy678
+      JAVA_OPTS: -Xmx512m -Xms256m
+      TZ: Asia/Shanghai
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - coursehub-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+# 网络配置
+networks:
+  coursehub-network:
+    driver: bridge
+    name: coursehub-network
+
+# 数据卷配置
+volumes:
+  mysql-data:
+    driver: local
+    name: coursehub-mysql-data

@@ -8,7 +8,14 @@
 
 ## 版本历史
 
-- **v1.1.0** (当前版本) - 数据库持久化
+- **v1.2.0** (当前版本) - Docker 容器化部署
+  - Docker 多阶段构建支持
+  - Docker Compose 编排配置
+  - 容器化开发和生产环境
+  - 数据持久化卷管理
+  - 自动化测试脚本
+
+- **v1.1.0** - 数据库持久化
   - 集成 Spring Data JPA
   - 支持 H2 内存数据库（开发环境）
   - 支持 MySQL 8.0+（生产环境）
@@ -28,6 +35,7 @@
   - 开发环境: H2 (内存数据库)
   - 生产环境: MySQL 8.0+
 - **连接池**: HikariCP
+- **容器化**: Docker & Docker Compose
 - **构建工具**: Maven
 - **API设计**: RESTful API
 
@@ -229,6 +237,257 @@ java -jar target/wy-1.1.0.jar --spring.profiles.active=dev
 ```
 
 **详细的数据库配置说明请查看**: [数据库配置与初始化指南](docs/DATABASE_SETUP.md)
+
+## Docker 部署 🐳
+
+### 前置要求
+
+- Docker 20.10+
+- Docker Compose 2.0+
+
+### 部署方式
+
+**本地部署（Windows/Mac/Linux）**：请查看下方的 [快速启动](#快速启动) 部分
+
+**虚拟机部署**：
+- **VMware 用户**：📖 [VMware 快速参考](docs/VMWARE_QUICKSTART.md) - VMware 专用配置指南
+- **通用指南**：📖 [Docker 虚拟机部署指南](docs/DOCKER_VM_DEPLOYMENT.md) - 完整部署文档
+- **快速开始**：📖 [3步快速部署](docs/DOCKER_QUICKSTART.md) - 最简部署流程
+
+### 快速启动
+
+1. **构建并启动所有服务**
+   ```bash
+   docker compose up -d
+   ```
+
+2. **查看服务状态**
+   ```bash
+   docker compose ps
+   ```
+
+3. **查看应用日志**
+   ```bash
+   docker compose logs -f app
+   ```
+
+4. **访问应用**
+   - API 端点: http://localhost:8080
+   - 健康检查: http://localhost:8080/health
+   - 数据库健康检查: http://localhost:8080/health/db
+
+### Docker 命令详解
+
+#### 构建镜像
+
+```bash
+# 构建应用镜像
+docker compose build
+
+# 或直接使用 Dockerfile
+docker build -t coursehub:latest .
+```
+
+#### 服务管理
+
+```bash
+# 启动所有服务
+docker compose up -d
+
+# 停止所有服务
+docker compose down
+
+# 停止并删除数据卷（⚠️ 会删除数据库数据）
+docker compose down -v
+
+# 重启服务
+docker compose restart
+
+# 重启单个服务
+docker compose restart app
+docker compose restart mysql
+```
+
+#### 查看日志
+
+```bash
+# 查看所有服务日志
+docker compose logs
+
+# 查看特定服务日志
+docker compose logs app
+docker compose logs mysql
+
+# 实时跟踪日志
+docker compose logs -f app
+
+# 查看最近100行日志
+docker compose logs --tail=100 app
+```
+
+#### 进入容器
+
+```bash
+# 进入应用容器
+docker exec -it coursehub-app bash
+
+# 进入 MySQL 容器
+docker exec -it coursehub-mysql bash
+
+# 在应用容器中测试数据库连接
+docker exec -it coursehub-app ping mysql
+```
+
+#### 数据库操作
+
+```bash
+# 连接到 MySQL
+docker exec -it coursehub-mysql mysql -uroot -pwywywy678 course_db
+
+# 备份数据库
+docker exec coursehub-mysql mysqldump -uroot -pwywywy678 course_db > backup.sql
+
+# 恢复数据库
+docker exec -i coursehub-mysql mysql -uroot -pwywywy678 course_db < backup.sql
+```
+
+### 镜像优化说明
+
+- **多阶段构建**: 使用 maven:3.9-openjdk-17 构建，openjdk:17-slim 运行
+- **镜像大小**: 约 180MB（符合 200MB 以内要求）
+- **安全性**: 使用非 root 用户 `appuser` 运行应用
+- **健康检查**: 自动监控应用和数据库健康状态
+
+### 网络配置
+
+所有服务连接到自定义网络 `coursehub-network`：
+- 应用容器可以通过服务名 `mysql` 访问数据库
+- 使用 bridge 网络驱动
+
+查看网络详情：
+```bash
+docker network inspect coursehub-network
+```
+
+### 数据持久化
+
+MySQL 数据存储在命名卷 `coursehub-mysql-data` 中，确保容器重启后数据不丢失。
+
+查看数据卷：
+```bash
+# 列出所有数据卷
+docker volume ls
+
+# 查看数据卷详情
+docker volume inspect coursehub-mysql-data
+```
+
+### 自动化测试
+
+项目提供了自动化测试脚本：
+
+**PowerShell (Windows)**:
+```powershell
+.\scripts\docker-test.ps1
+```
+
+**Bash (Linux/Mac)**:
+```bash
+chmod +x scripts/docker-test.sh
+./scripts/docker-test.sh
+```
+
+测试内容包括：
+- ✓ 应用健康检查
+- ✓ 数据库连接测试
+- ✓ 课程 CRUD 操作
+- ✓ 学生 CRUD 操作
+- ✓ 数据持久化验证
+
+### 环境变量配置
+
+可以通过 `.env` 文件或 docker-compose.yml 修改环境变量：
+
+```yaml
+environment:
+  SPRING_PROFILES_ACTIVE: docker
+  SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/course_db
+  SPRING_DATASOURCE_USERNAME: root
+  SPRING_DATASOURCE_PASSWORD: your_password
+  JAVA_OPTS: -Xmx512m -Xms256m
+```
+
+### 故障排查
+
+#### 应用无法启动
+
+1. 检查 MySQL 是否启动成功：
+   ```bash
+   docker compose logs mysql
+   ```
+
+2. 确认应用等待 MySQL 就绪：
+   ```bash
+   docker compose logs app
+   ```
+
+3. 检查端口占用：
+   ```bash
+   # Windows
+   netstat -ano | findstr :8080
+   netstat -ano | findstr :3306
+   
+   # Linux/Mac
+   lsof -i :8080
+   lsof -i :3306
+   ```
+
+#### 数据库连接失败
+
+1. 测试网络连通性：
+   ```bash
+   docker exec -it coursehub-app ping mysql
+   ```
+
+2. 检查 MySQL 健康状态：
+   ```bash
+   docker compose ps
+   ```
+
+3. 查看 MySQL 错误日志：
+   ```bash
+   docker compose logs mysql | grep ERROR
+   ```
+
+#### 数据丢失
+
+确保使用正确的命令停止服务：
+```bash
+# ✓ 正确：保留数据卷
+docker compose down
+
+# ✗ 错误：会删除数据卷
+docker compose down -v
+```
+
+### 性能优化
+
+1. **调整 JVM 内存**：
+   修改 `docker-compose.yml` 中的 `JAVA_OPTS`
+
+2. **调整 MySQL 连接池**：
+   修改 `application-docker.yml` 中的 HikariCP 配置
+
+3. **限制容器资源**：
+   ```yaml
+   services:
+     app:
+       deploy:
+         resources:
+           limits:
+             cpus: '1.0'
+             memory: 1G
+   ```
 
 ## 测试说明
 
@@ -439,6 +698,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=dev
 
 ---
 
-**版本**: v1.1.0  
-**最后更新**: 2025年11月2日
+**版本**: v1.2.0  
+**最后更新**: 2025年11月16日  
+**Git 标签**: coursehub-week-05
 
